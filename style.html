@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JNTUA R20 SGPA, CGPA & Percentage Calculator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(120deg, #e0eafc, #cfdef3);
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #002244;
+      padding: 20px;
+      background-color: #ffffff;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      margin: 0;
+    }
+    marquee {
+      font-size: 1.2em;
+      color: #FF4500;
+      background: #fff8f0;
+      padding: 10px;
+      margin: 0 auto;
+      display: block;
+    }
+    section {
+      background: #ffffff;
+      border-radius: 15px;
+      padding: 25px;
+      margin: 30px auto;
+      max-width: 900px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+    h2 {
+      color: #003366;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 5px;
+    }
+    .input-row {
+      margin: 10px 0;
+    }
+    input[type="number"] {
+      padding: 10px;
+      margin: 5px;
+      width: 120px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+    button {
+      padding: 12px 20px;
+      margin: 10px 5px;
+      background-color: #0057b7;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background-color: #007bff;
+    }
+    .result {
+      font-weight: bold;
+      color: #006600;
+      margin-top: 12px;
+      background-color: #e6ffee;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    .semester-block {
+      margin-top: 30px;
+      border-top: 1px solid #ccc;
+      padding-top: 20px;
+    }
+    p {
+      line-height: 1.6;
+      font-size: 1rem;
+    }
+    em {
+      font-weight: bold;
+      color: #cc0000;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 25px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #0057b7;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>JNTUA R20 - SGPA, CGPA & Percentage Calculator</h1>
+  <marquee>JNTUA R20 SGPA, CGPA and Percentage Calculator</marquee>
+  <section id="calculatorSection">
+    <p>This tool helps you calculate your SGPA for each semester and then your final CGPA & percentage based on the JNTUA R20 formula.</p>
+    <p>Just give the grade earned in that subject (e.g., Marks = 85 then Grade = A) and credit of that subject.</p>
+    <div id="semestersContainer"></div>
+    <p>Click the button below to generate your final <em>CGPA and PERCENTAGE</em>.</p>
+    <button onclick="calculateFinal()">Calculate Final CGPA & Percentage</button>
+    <button onclick="downloadJSON()">Download JSON</button>
+    <div class="result" id="finalResult"></div>
+
+    <h2>Summary of All Semesters</h2>
+    <table id="summaryTable">
+      <thead>
+        <tr>
+          <th>Semester</th>
+          <th>SGPA</th>
+          <th>Total Credits</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+<script>
+  const totalSemesters = 8;
+
+  function createSemesterBlock(semNum) {
+    const container = document.getElementById('semestersContainer');
+    const block = document.createElement('div');
+    block.className = 'semester-block';
+    block.innerHTML = `<h2>Semester ${semNum}</h2>
+      <div id="sgpaInputs${semNum}"></div>
+      <button onclick="addSGPARow(${semNum})">Add Subject</button>
+      <button onclick="calculateSGPA(${semNum})">Calculate SGPA</button>
+      <div class="result" id="sgpaResult${semNum}"></div>
+      <input type="hidden" id="storedSGPA${semNum}">
+      <input type="hidden" id="storedCredits${semNum}">`;
+    container.appendChild(block);
+
+    for (let i = 0; i < 5; i++) addSGPARow(semNum);
+
+    // Load saved data if available
+    loadSemesterData(semNum);
+  }
+
+  function addSGPARow(semNum) {
+    const div = document.createElement('div');
+    div.className = "input-row";
+    div.innerHTML = `Grade: <input type="number" step="0.01" class="grade${semNum}"> Credits: <input type="number" class="credit${semNum}">`;
+    document.getElementById(`sgpaInputs${semNum}`).appendChild(div);
+    loadInputsData(semNum);
+  }
+
+  function calculateSGPA(semNum) {
+    const grades = document.querySelectorAll(`.grade${semNum}`);
+    const credits = document.querySelectorAll(`.credit${semNum}`);
+    let totalPoints = 0, totalCredits = 0;
+
+    for (let i = 0; i < grades.length; i++) {
+      const g = parseFloat(grades[i].value);
+      const c = parseFloat(credits[i].value);
+      if (!isNaN(g) && !isNaN(c)) {
+        totalPoints += g * c;
+        totalCredits += c;
+      }
+    }
+
+    const sgpa = totalPoints / totalCredits;
+    if (isNaN(sgpa)) {
+      document.getElementById(`sgpaResult${semNum}`).innerText = "Please enter valid data.";
+    } else {
+      document.getElementById(`sgpaResult${semNum}`).innerText = `SGPA: ${sgpa.toFixed(2)}`;
+      document.getElementById(`storedSGPA${semNum}`).value = sgpa.toFixed(2);
+      document.getElementById(`storedCredits${semNum}`).value = totalCredits;
+
+      // Save to localStorage
+      saveSemesterData(semNum, sgpa.toFixed(2), totalCredits);
+
+      // Update summary table
+      updateSummaryTable();
+    }
+  }
+
+  function calculateFinal() {
+    let totalWeightedSGPA = 0, totalCredits = 0;
+
+    for (let i = 1; i <= totalSemesters; i++) {
+      const sgpa = parseFloat(document.getElementById(`storedSGPA${i}`).value);
+      const credits = parseFloat(document.getElementById(`storedCredits${i}`).value);
+      if (!isNaN(sgpa) && !isNaN(credits)) {
+        totalWeightedSGPA += sgpa * credits;
+        totalCredits += credits;
+      }
+    }
+
+    if (totalCredits === 0) {
+      document.getElementById('finalResult').innerText = "Please calculate SGPA for each semester first.";
+      return;
+    }
+
+    const finalCGPA = totalWeightedSGPA / totalCredits;
+    const percentage = (finalCGPA - 0.5) * 10;
+
+    document.getElementById('finalResult').innerHTML =
+      `Final CGPA: ${finalCGPA.toFixed(2)}<br>Percentage (R20): ${percentage.toFixed(2)}%`;
+
+    // Save final results to localStorage
+    localStorage.setItem('finalCGPA', finalCGPA.toFixed(2));
+    localStorage.setItem('finalPercentage', percentage.toFixed(2));
+  }
+
+  // Save semester data to localStorage
+  function saveSemesterData(semNum, sgpa, credits) {
+    const data = JSON.parse(localStorage.getItem('semesterData')) || {};
+    data[semNum] = { sgpa, credits };
+    localStorage.setItem('semesterData', JSON.stringify(data));
+  }
+
+  // Load semester data and fill hidden inputs and summary table
+  function loadSemesterData(semNum) {
+    const data = JSON.parse(localStorage.getItem('semesterData')) || {};
+    if (data[semNum]) {
+      document.getElementById(`storedSGPA${semNum}`).value = data[semNum].sgpa;
+      document.getElementById(`storedCredits${semNum}`).value = data[semNum].credits;
+      document.getElementById(`sgpaResult${semNum}`).innerText = `SGPA: ${data[semNum].sgpa}`;
+      updateSummaryTable();
+    }
+  }
+
+  // Update summary table with stored data
+  function updateSummaryTable() {
+    const data = JSON.parse(localStorage.getItem('semesterData')) || {};
+    const tbody = document.querySelector('#summaryTable tbody');
+    tbody.innerHTML = '';
+    for (let i = 1; i <= totalSemesters; i++) {
+      if (data[i]) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${i}</td><td>${data[i].sgpa}</td><td>${data[i].credits}</td>`;
+        tbody.appendChild(tr);
+      }
+    }
+  }
+
+  // Load inputs data if saved grades and credits exist (optional, can be extended)
+  function loadInputsData(semNum) {
+    // For now, this is left empty but could be implemented to load individual subjects data if saved.
+  }
+
+  // Download all stored data as JSON file
+  function downloadJSON() {
+    const semesterData = JSON.parse(localStorage.getItem('semesterData')) || {};
+    const finalCGPA = localStorage.getItem('finalCGPA') || "";
+    const finalPercentage = localStorage.getItem('finalPercentage') || "";
+
+    const dataToDownload = {
+      semesters: semesterData,
+      finalCGPA,
+      finalPercentage
+    };
+
+    const blob = new Blob([JSON.stringify(dataToDownload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'jntua_results.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Initialize all semesters
+  for (let i = 1; i <= totalSemesters; i++) {
+    createSemesterBlock(i);
+  }
+
+  // On page load, update summary table with existing data
+  updateSummaryTable();
+
+</script>
+</body>
+</html>
