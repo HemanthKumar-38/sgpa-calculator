@@ -1,1 +1,1 @@
-# sgpa-calculator
+# jntuaR20-calculator
