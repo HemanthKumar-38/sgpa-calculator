@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>JNTUA R20 SGPA, CGPA & Percentage Calculator</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
@@ -111,7 +113,7 @@
     <div id="semestersContainer"></div>
     <p>Click the button below to generate your final <em>CGPA and PERCENTAGE</em>.</p>
     <button onclick="calculateFinal()">Calculate Final CGPA & Percentage</button>
-    <button onclick="downloadJSON()">Download JSON</button>
+    <button onclick="downloadPDF()">Download PDF</button>
     <div class="result" id="finalResult"></div>
 
     <h2>Summary of All Semesters</h2>
@@ -145,7 +147,6 @@
 
     for (let i = 0; i < 5; i++) addSGPARow(semNum);
 
-    // Load saved data if available
     loadSemesterData(semNum);
   }
 
@@ -179,10 +180,7 @@
       document.getElementById(`storedSGPA${semNum}`).value = sgpa.toFixed(2);
       document.getElementById(`storedCredits${semNum}`).value = totalCredits;
 
-      // Save to localStorage
       saveSemesterData(semNum, sgpa.toFixed(2), totalCredits);
-
-      // Update summary table
       updateSummaryTable();
     }
   }
@@ -210,19 +208,16 @@
     document.getElementById('finalResult').innerHTML =
       `Final CGPA: ${finalCGPA.toFixed(2)}<br>Percentage (R20): ${percentage.toFixed(2)}%`;
 
-    // Save final results to localStorage
     localStorage.setItem('finalCGPA', finalCGPA.toFixed(2));
     localStorage.setItem('finalPercentage', percentage.toFixed(2));
   }
 
-  // Save semester data to localStorage
   function saveSemesterData(semNum, sgpa, credits) {
     const data = JSON.parse(localStorage.getItem('semesterData')) || {};
     data[semNum] = { sgpa, credits };
     localStorage.setItem('semesterData', JSON.stringify(data));
   }
 
-  // Load semester data and fill hidden inputs and summary table
   function loadSemesterData(semNum) {
     const data = JSON.parse(localStorage.getItem('semesterData')) || {};
     if (data[semNum]) {
@@ -233,7 +228,6 @@
     }
   }
 
-  // Update summary table with stored data
   function updateSummaryTable() {
     const data = JSON.parse(localStorage.getItem('semesterData')) || {};
     const tbody = document.querySelector('#summaryTable tbody');
@@ -247,40 +241,31 @@
     }
   }
 
-  // Load inputs data if saved grades and credits exist (optional, can be extended)
   function loadInputsData(semNum) {
-    // For now, this is left empty but could be implemented to load individual subjects data if saved.
+    // Future extension placeholder
   }
 
-  // Download all stored data as JSON file
-  function downloadJSON() {
-    const semesterData = JSON.parse(localStorage.getItem('semesterData')) || {};
-    const finalCGPA = localStorage.getItem('finalCGPA') || "";
-    const finalPercentage = localStorage.getItem('finalPercentage') || "";
+  async function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "pt", "a4");
+    const section = document.getElementById("calculatorSection");
 
-    const dataToDownload = {
-      semesters: semesterData,
-      finalCGPA,
-      finalPercentage
-    };
+    await html2canvas(section, { scale: 2 }).then((canvas) => {
+      const imgData = canvas.toDataURL("image/png");
+      const imgProps = doc.getImageProperties(imgData);
+      const pdfWidth = doc.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
 
-    const blob = new Blob([JSON.stringify(dataToDownload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'jntua_results.json';
-    a.click();
-    URL.revokeObjectURL(url);
+      doc.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      doc.save("JNTUA_Result_Summary.pdf");
+    });
   }
 
-  // Initialize all semesters
   for (let i = 1; i <= totalSemesters; i++) {
     createSemesterBlock(i);
   }
 
-  // On page load, update summary table with existing data
   updateSummaryTable();
-
 </script>
 </body>
 </html>
